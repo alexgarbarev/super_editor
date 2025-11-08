@@ -407,15 +407,10 @@ class _SingleColumnDocumentLayoutState extends State<SingleColumnDocumentLayout>
       if (componentOverlap != null) {
         editorLayoutLog.fine(' - drag intersects: $componentKey}');
         editorLayoutLog.fine(' - intersection: $componentOverlap');
-        final componentBaseOffset = _componentOffset(
-          componentKey.currentContext!.findRenderObject() as RenderBox,
-          baseOffset,
-        );
+        final componentRenderBox = componentKey.currentContext!.findRenderObject() as RenderBox;
+        final componentBaseOffset = _componentOffset(componentRenderBox, baseOffset);
         editorLayoutLog.fine(' - base component offset: $componentBaseOffset');
-        final componentExtentOffset = _componentOffset(
-          componentKey.currentContext!.findRenderObject() as RenderBox,
-          extentOffset,
-        );
+        final componentExtentOffset = _componentOffset(componentRenderBox, extentOffset);
         editorLayoutLog.fine(' - extent component offset: $componentExtentOffset');
 
         if (topNodeId == null) {
@@ -423,16 +418,32 @@ class _SingleColumnDocumentLayoutState extends State<SingleColumnDocumentLayout>
           // first intersecting component that we find must be the top node of
           // the selected area.
           topNodeId = _componentKeysToNodeIds[componentKey];
-          topNodeBasePosition = _getNodePositionForComponentOffset(component, componentBaseOffset);
-          topNodeExtentPosition = _getNodePositionForComponentOffset(component, componentExtentOffset);
+          topNodeBasePosition = _getNodePositionForComponentOffset(
+            component,
+            componentBaseOffset,
+            componentRenderBox.size,
+          );
+          topNodeExtentPosition = _getNodePositionForComponentOffset(
+            component,
+            componentExtentOffset,
+            componentRenderBox.size,
+          );
         }
         // We continuously update the bottom node with every additional
         // intersection that we find. This way, when the iteration ends,
         // the last bottom node that we assigned must be the actual bottom
         // node within the selected area.
         bottomNodeId = _componentKeysToNodeIds[componentKey];
-        bottomNodeBasePosition = _getNodePositionForComponentOffset(component, componentBaseOffset);
-        bottomNodeExtentPosition = _getNodePositionForComponentOffset(component, componentExtentOffset);
+        bottomNodeBasePosition = _getNodePositionForComponentOffset(
+          component,
+          componentBaseOffset,
+          componentRenderBox.size,
+        );
+        bottomNodeExtentPosition = _getNodePositionForComponentOffset(
+          component,
+          componentExtentOffset,
+          componentRenderBox.size,
+        );
       } else if (topNodeId != null) {
         // We already found an overlapping component and the current component doesn't
         // overlap with the region.
@@ -507,11 +518,16 @@ class _SingleColumnDocumentLayoutState extends State<SingleColumnDocumentLayout>
   /// If the [componentOffset] is above the component, then the component's
   /// "beginning" position is returned. If the [componentOffset] is below
   /// the component, then the component's "end" position is returned.
-  NodePosition? _getNodePositionForComponentOffset(DocumentComponent component, Offset componentOffset) {
+  NodePosition? _getNodePositionForComponentOffset(
+    DocumentComponent component,
+    Offset componentOffset,
+    Size componentSize,
+  ) {
     if (componentOffset.dy < 0) {
       return component.getBeginningPosition();
     }
-    if (componentOffset.dy > component.getRectForPosition(component.getEndPosition()).bottom) {
+
+    if (componentOffset.dy > componentSize.height) {
       return component.getEndPosition();
     }
 
